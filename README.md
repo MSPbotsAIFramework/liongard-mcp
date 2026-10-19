@@ -32,8 +32,8 @@ A request to `/mcp` without both headers gets HTTP 401; an invalid instance gets
 
 ## Tools
 
-All tools return a JSON string. Lists take `page` (from 1) and `pageSize` (default 50; v2 lists up to
-2000) and return `{count, total, page, has_more}`. **write** marks tools that change data;
+All tools return a JSON string. Lists take `page` (from 1) and `pageSize` (default 50, max
+200) and return `{count, total, page, has_more}`. **write** marks tools that change data;
 **confirm** marks the delete, which also needs `confirm: true`.
 
 | Area | Tools |
@@ -105,6 +105,8 @@ uv run pytest
 ## Delivery notes
 
 - **Tool count (24).** Kept as is because the tool names are an existing contract.
+- **Result size exception (SOP 2.5).** `liongard_metrics_list` has no paging parameters, so it still
+  reads up to 2000 metrics in one call; results are still cut to 20,000 characters with a truncation notice.
 - **API source.** Liongard's published OpenAPI documents (API v1 and v2, linked from
   docs.liongard.com).
 - **Fixed calls.** Running an inspection is `GET /v1/launchpoints/{id}/run` (older versions used

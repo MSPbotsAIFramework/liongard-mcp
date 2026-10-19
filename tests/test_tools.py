@@ -17,6 +17,7 @@ import asyncio
 import json
 
 import pytest
+from mcp.server.fastmcp.exceptions import ToolError
 
 from liongard_mcp.api_client import LiongardError
 from liongard_mcp.server import INSTRUCTIONS, create_mcp_server
@@ -101,6 +102,15 @@ def test_delete_takes_confirm(tools):
 def test_navigate_lists_every_tool():
     listed = {tool for _, names in DOMAINS.values() for tool in names}
     assert listed | {"liongard_navigate"} == set(EXPECTED)
+
+
+def test_page_size_is_capped_at_200(tools):
+    paged = [t for t in tools.values() if "pageSize" in t.inputSchema["properties"]]
+    assert len(paged) == 11
+    for tool in paged:
+        assert tool.inputSchema["properties"]["pageSize"]["anyOf"][0]["maximum"] == 200, tool.name
+    with pytest.raises(ToolError, match="less than or equal to 200"):
+        asyncio.run(create_mcp_server().call_tool("liongard_metrics_evaluate", {"pageSize": 201}))
 
 
 def test_instructions_budget():

@@ -16,8 +16,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_PAGE_SIZE = 50
-# The v2 API returns at most 2000 records per page.
-MAX_PAGE_SIZE = 2000
+# Per-call cap (the v2 API itself allows up to 2000 records per page).
+MAX_PAGE_SIZE = 200
 
 
 class Settings(BaseSettings):
