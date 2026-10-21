@@ -278,3 +278,10 @@ async def test_inventory_queries(monkeypatch, tool, path):
 async def test_inventory_gets(monkeypatch, tool, path):
     rec = Recorder({path: {"ID": 8}})
     assert await _call(monkeypatch, rec, tool, {"id": 8}) == {"ID": 8}
+
+
+@pytest.mark.parametrize("given,sent", [("core", "Core"), ("ESSENTIAL", "Essential"), ("Premium", "Premium")])
+async def test_environment_create_tier_normalized_or_passed_through(monkeypatch, given, sent):
+    rec = Recorder({"POST v2/environments": {"ID": 7}})
+    await _call(monkeypatch, rec, "liongard_environments_create", {"Name": "Example Co", "Tier": given})
+    assert body(rec.calls("v2/environments", "POST")[0])["Tier"] == sent

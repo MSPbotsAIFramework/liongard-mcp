@@ -19,7 +19,9 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, WRITES, ClientFactory, Page, PageSize, RecordId, compact, run_tool, v2_page
+from ._common import READ_ONLY, WRITES, ClientFactory, Page, PageSize, RecordId, compact, enum_value, run_tool, v2_page
+
+EnvironmentTier = Literal["Core", "Essential"]
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
@@ -45,7 +47,7 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     async def liongard_environments_create(
         Name: Annotated[str, Field(description="Environment (customer) name.", min_length=1)],
         Description: Annotated[str | None, Field(description="Description.")] = None,
-        Tier: Annotated[Literal["Core", "Essential"] | None, Field(description="Liongard tier (default Core).")] = None,
+        Tier: Annotated[EnvironmentTier | str | None, Field(description="Liongard tier (default Core).")] = None,
         ShortName: Annotated[str | None, Field(description="Short name.")] = None,
         Parent: Annotated[int | None, Field(description="Parent environment id (for child environments).", ge=1)] = None,
         Status: Annotated[str | int | None, Field(description="Accepted for compatibility; the Liongard API ignores it.")] = None,
@@ -55,7 +57,7 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
         del Status, Visible  # not part of the Liongard create body (v1 or v2); never sent
 
         async def action(client: LiongardClient) -> Any:
-            body = compact({"Name": Name, "Description": Description, "Tier": Tier, "ShortName": ShortName, "Parent": Parent})
+            body = compact({"Name": Name, "Description": Description, "Tier": enum_value(Tier, EnvironmentTier), "ShortName": ShortName, "Parent": Parent})
             return await client.post("v2", "environments", body)
 
         return await run_tool("liongard_environments_create", client_factory, action)
