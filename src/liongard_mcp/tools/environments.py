@@ -48,8 +48,11 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
         Tier: Annotated[Literal["Core", "Essential"] | None, Field(description="Liongard tier (default Core).")] = None,
         ShortName: Annotated[str | None, Field(description="Short name.")] = None,
         Parent: Annotated[int | None, Field(description="Parent environment id (for child environments).", ge=1)] = None,
+        Status: Annotated[str | int | None, Field(description="Accepted for compatibility; the Liongard API ignores it.")] = None,
+        Visible: Annotated[bool | None, Field(description="Accepted for compatibility; the Liongard API ignores it.")] = None,
     ) -> str:
         """Create an environment (customer). Only when the user explicitly asks."""
+        del Status, Visible  # not part of the Liongard create body (v1 or v2); never sent
 
         async def action(client: LiongardClient) -> Any:
             body = compact({"Name": Name, "Description": Description, "Tier": Tier, "ShortName": ShortName, "Parent": Parent})

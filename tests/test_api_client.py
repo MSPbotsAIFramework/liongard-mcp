@@ -134,6 +134,13 @@ async def test_environment_create_and_related(monkeypatch):
     assert (await _call(monkeypatch, rec, "liongard_environments_related", {"id": 5})) == {"Launchpoints": [1]}
 
 
+async def test_environment_create_accepts_and_ignores_status_and_visible(monkeypatch):
+    rec = Recorder({"POST v2/environments": {"ID": 6}})
+    result = await _call(monkeypatch, rec, "liongard_environments_create", {"Name": "Example Co", "Status": 1, "Visible": False})
+    assert result == {"ID": 6}
+    assert body(rec.calls("v2/environments", "POST")[0]) == {"Name": "Example Co"}
+
+
 async def test_agents_list_and_delete(monkeypatch):
     rec = Recorder({"POST v2/view/agents": paged([{"ID": 3}]), "DELETE v1/agents/3": lambda r: httpx.Response(204)})
     listed = await _call(monkeypatch, rec, "liongard_agents_list", {"pageSize": 10})

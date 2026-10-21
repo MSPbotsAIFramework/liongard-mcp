@@ -1,0 +1,202 @@
+{
+  "int_baseline": {
+    "liongard_agents_list": {
+      "params": [
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_agents_delete": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_detections_list": {
+      "params": [
+        "page",
+        "pageSize",
+        "startDate",
+        "endDate",
+        "filters"
+      ],
+      "required": []
+    },
+    "liongard_detections_get": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_environments_list": {
+      "params": [
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_environments_get": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_environments_create": {
+      "params": [
+        "Name",
+        "Description",
+        "Status",
+        "Visible",
+        "Tier"
+      ],
+      "required": [
+        "Name"
+      ]
+    },
+    "liongard_environments_count": {
+      "params": [],
+      "required": []
+    },
+    "liongard_environments_related": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_inspections_inspectors": {
+      "params": [
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_inspections_launchpoints": {
+      "params": [
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_inspections_create_launchpoint": {
+      "params": [
+        "Name",
+        "InspectorID",
+        "EnvironmentID",
+        "AgentID",
+        "Schedule"
+      ],
+      "required": [
+        "Name",
+        "InspectorID",
+        "EnvironmentID"
+      ]
+    },
+    "liongard_inspections_run": {
+      "params": [
+        "launchpointId"
+      ],
+      "required": [
+        "launchpointId"
+      ]
+    },
+    "liongard_inventory_identities": {
+      "params": [
+        "environment",
+        "page",
+        "pageSize",
+        "filters"
+      ],
+      "required": [
+        "environment"
+      ]
+    },
+    "liongard_inventory_identity_get": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_inventory_devices": {
+      "params": [
+        "environment",
+        "page",
+        "pageSize",
+        "filters"
+      ],
+      "required": [
+        "environment"
+      ]
+    },
+    "liongard_inventory_device_get": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_metrics_list": {
+      "params": [],
+      "required": []
+    },
+    "liongard_metrics_evaluate": {
+      "params": [
+        "MetricIDs",
+        "EnvironmentIDs",
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_metrics_evaluate_systems": {
+      "params": [
+        "MetricIDs",
+        "EnvironmentIDs",
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_systems_list": {
+      "params": [
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_systems_get": {
+      "params": [
+        "id"
+      ],
+      "required": [
+        "id"
+      ]
+    },
+    "liongard_timeline_list": {
+      "params": [
+        "page",
+        "pageSize"
+      ],
+      "required": []
+    },
+    "liongard_navigate": {
+      "params": [
+        "domain"
+      ],
+      "required": [
+        "domain"
+      ]
+    }
+  }
+}

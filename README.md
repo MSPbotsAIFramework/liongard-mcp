@@ -39,7 +39,7 @@ All tools return a JSON string. Lists take `page` (from 1) and `pageSize` (defau
 | Area | Tools |
 |---|---|
 | Overview | `liongard_navigate` (**domain**) |
-| Environments | `liongard_environments_list`, `liongard_environments_get` (**id**), `liongard_environments_count`, `liongard_environments_related` (**id**); **write**: `liongard_environments_create` (**Name**, Description, Tier, ShortName, Parent) |
+| Environments | `liongard_environments_list`, `liongard_environments_get` (**id**), `liongard_environments_count`, `liongard_environments_related` (**id**); **write**: `liongard_environments_create` (**Name**, Description, Tier, ShortName, Parent; Status, Visible accepted and ignored) |
 | Agents | `liongard_agents_list`; **confirm**: `liongard_agents_delete` (**id**) |
 | Inspections | `liongard_inspections_inspectors`, `liongard_inspections_launchpoints`; **write**: `liongard_inspections_create_launchpoint` (**Name**, **InspectorID**, **EnvironmentID**, AgentID, Schedule, Config, SecureConfig), `liongard_inspections_run` (**launchpointId**) |
 | Systems | `liongard_systems_list`, `liongard_systems_get` (**id**, include_data) |
@@ -119,7 +119,8 @@ uv run pytest
 - **Required by the API, so now checked:** `MetricIDs` for evaluate, `SystemIDs` for
   evaluate_systems, `AgentID` for creating a launchpoint (each optional in the schema for
   compatibility, reported when missing).
-- **Parameters the API cannot honour were removed**: `Status` and `Visible` on environment create.
+- **Accepted but ignored**: `Status` and `Visible` on environment create are kept for
+  compatibility but not sent; Liongard's create body (v1 and v2 OpenAPI) has no such fields.
 - **Paging.** v1 lists (inspectors, launchpoints, systems) come back whole and are paged here; v2
   lists are paged by Liongard.
 - **Not included**: the detection "card" UI resource of older versions (an MCP Apps HTML view);
