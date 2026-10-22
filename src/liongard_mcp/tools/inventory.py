@@ -19,19 +19,22 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, ClientFactory, Filters, Page, PageSize, RecordId, compact, pagination, run_tool, v2_page
+from ._common import READ_ONLY, ClientFactory, Filters, Offset, Page, PageSize, RecordId, compact, locate, pagination, run_tool, v2_page
 
 EnvironmentId = Annotated[int, Field(description="Environment id.", ge=1)]
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_inventory_identities(environment: EnvironmentId, page: Page = None, pageSize: PageSize = None, filters: Filters = None) -> str:
+    async def liongard_inventory_identities(
+        environment: EnvironmentId, page: Page = None, pageSize: PageSize = None, filters: Filters = None, offset: Offset = None
+    ) -> str:
         """List an environment's identities (user accounts seen across its systems) with state and sources."""
 
         async def action(client: LiongardClient) -> dict:
-            body = compact({"Environment": environment, "Filters": filters, "Pagination": pagination(page, pageSize)})
-            return v2_page(await client.post("v2", "inventory/identities/query", body), "identities")
+            number, size, start = locate(offset, page, pageSize)
+            body = compact({"Environment": environment, "Filters": filters, "Pagination": pagination(number, size)})
+            return v2_page(await client.post("v2", "inventory/identities/query", body), "identities", number, size, start)
 
         return await run_tool("liongard_inventory_identities", client_factory, action)
 
@@ -45,12 +48,15 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
         return await run_tool("liongard_inventory_identity_get", client_factory, action)
 
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_inventory_devices(environment: EnvironmentId, page: Page = None, pageSize: PageSize = None, filters: Filters = None) -> str:
+    async def liongard_inventory_devices(
+        environment: EnvironmentId, page: Page = None, pageSize: PageSize = None, filters: Filters = None, offset: Offset = None
+    ) -> str:
         """List an environment's device profiles (devices seen across its systems) with hostname and state."""
 
         async def action(client: LiongardClient) -> dict:
-            body = compact({"Environment": environment, "Filters": filters, "Pagination": pagination(page, pageSize)})
-            return v2_page(await client.post("v2", "inventory/device-profiles/query", body), "devices")
+            number, size, start = locate(offset, page, pageSize)
+            body = compact({"Environment": environment, "Filters": filters, "Pagination": pagination(number, size)})
+            return v2_page(await client.post("v2", "inventory/device-profiles/query", body), "devices", number, size, start)
 
         return await run_tool("liongard_inventory_devices", client_factory, action)
 

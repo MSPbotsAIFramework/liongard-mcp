@@ -42,6 +42,10 @@ NOT_CONFIGURED = error_envelope(
 RecordId = Annotated[int, Field(description="Record id.", ge=1)]
 Page = Annotated[int | None, Field(description="Page number, starting at 1.", ge=1)]
 PageSize = Annotated[int | None, Field(description=f"Records per page (default {DEFAULT_PAGE_SIZE}, max {MAX_PAGE_SIZE}).", ge=1, le=MAX_PAGE_SIZE)]
+Offset = Annotated[
+    int | None,
+    Field(description="Record position to start from (0-based, overrides page); pass next_offset from the previous result.", ge=0),
+]
 Filters = Annotated[
     list[dict[str, Any]] | None,
     Field(description='Liongard filter objects, e.g. [{"FilterBy": "Hostname", "Op": "contains", "Value": "PC"}].'),
@@ -57,8 +61,25 @@ def pagination(page: int | None, page_size: int | None) -> dict[str, int]:
     return {"Page": page or 1, "PageSize": page_size or DEFAULT_PAGE_SIZE}
 
 
-def v2_page(payload: Any, key: str) -> dict:
-    """A v2 list: {Data | <array>, Pagination: {TotalRows, HasMoreRows, CurrentPage, TotalPages, PageSize}}."""
+def locate(offset: int | None, page: int | None, page_size: int | None) -> tuple[int, int, int]:
+    """(page, page size, start) for a read from record ``start``.
+
+    Liongard pages by number only, so a position is reached by asking for the page that
+    holds it (same page size) and skipping the records before it.
+    """
+    size = page_size or DEFAULT_PAGE_SIZE
+    start = offset if offset is not None else ((page or 1) - 1) * size
+    return start // size + 1, size, start
+
+
+def v2_page(payload: Any, key: str, number: int | None = None, size: int | None = None, start: int | None = None) -> dict:
+    """A v2 list: {Data | <array>, Pagination: {TotalRows, HasMoreRows, CurrentPage, TotalPages, PageSize}}.
+
+    With ``number`` (the page requested) the records from ``start`` on are returned, plus
+    ``offset`` and ``next_offset``, which continues right after the last record returned, also
+    when the result is cut to fit the size limit (a page number cannot: the rest of a cut page
+    is on no other page). ``size`` None means the page size Liongard reports (else the default).
+    """
     rows: Any = payload
     paging: dict = {}
     if isinstance(payload, dict):
@@ -67,23 +88,45 @@ def v2_page(payload: Any, key: str) -> dict:
         if rows is None:
             rows = next((v for v in payload.values() if isinstance(v, list)), [])
     rows = rows if isinstance(rows, list) else []
-    return compact(
-        {
+    result: dict[str, Any] = {
+        key: rows,
+        "count": len(rows),
+        "total": paging.get("TotalRows"),
+        "page": paging.get("CurrentPage"),
+        "has_more": bool(paging.get("HasMoreRows")) if paging else None,
+    }
+    if number is not None:
+        if size is None:
+            reported = paging.get("PageSize")
+            size = reported if isinstance(reported, int) and reported > 0 else DEFAULT_PAGE_SIZE
+        first = (number - 1) * size
+        start = first if start is None else start
+        more = bool(paging.get("HasMoreRows")) if paging else len(rows) >= size
+        rows = rows[start - first :]
+        result |= {
             key: rows,
             "count": len(rows),
-            "total": paging.get("TotalRows"),
-            "page": paging.get("CurrentPage"),
-            "has_more": bool(paging.get("HasMoreRows")) if paging else None,
+            "offset": start,
+            "next_offset": start + len(rows) if more else None,
+            "_resume": {"key": "next_offset", "start": start},
         }
-    )
+    return compact(result)
 
 
-def local_page(rows: Any, key: str, page: int | None, page_size: int | None) -> dict:
-    """Page a v1 list (the v1 API returns the whole set) on this side."""
+def local_page(rows: Any, key: str, page: int | None, page_size: int | None, offset: int | None = None) -> dict:
+    """Page a v1 list (the v1 API returns the whole set) on this side.
+
+    Same shape as a v2 page: the records from ``offset`` (or the page start) to the end of
+    the page that holds it, with ``next_offset`` right after the last record returned.
+    """
     rows = rows if isinstance(rows, list) else []
-    number, size = page or 1, page_size or DEFAULT_PAGE_SIZE
-    chunk = rows[(number - 1) * size : number * size]
-    return {key: chunk, "count": len(chunk), "total": len(rows), "page": number, "has_more": number * size < len(rows)}
+    number, size, start = locate(offset, page, page_size)
+    chunk = rows[start : number * size]
+    more = number * size < len(rows)
+    result = {key: chunk, "count": len(chunk), "total": len(rows), "page": number, "has_more": more, "offset": start}
+    if more:
+        result["next_offset"] = start + len(chunk)
+    return result | {"_resume": {"key": "next_offset", "start": start}}
 
 
 def not_confirmed_result(action: str) -> dict:

@@ -19,18 +19,24 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, WRITES, ClientFactory, Page, PageSize, RecordId, compact, enum_value, run_tool, v2_page
+from ._common import READ_ONLY, WRITES, ClientFactory, Offset, Page, PageSize, RecordId, compact, enum_value, locate, run_tool, v2_page
 
 EnvironmentTier = Literal["Core", "Essential"]
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_environments_list(page: Page = None, pageSize: PageSize = None) -> str:
+    async def liongard_environments_list(page: Page = None, pageSize: PageSize = None, offset: Offset = None) -> str:
         """List environments (customers): id, name, short name, tier, parent, systems and agents counts."""
 
         async def action(client: LiongardClient) -> dict:
-            return v2_page(await client.get("v2", "environments", compact({"page": page, "pageSize": pageSize})), "environments")
+            number, size, start = locate(offset, page, pageSize)
+            if offset is None:
+                # As before: send only what the caller gave; without pageSize the size Liongard reports counts.
+                params, size, start = compact({"page": page, "pageSize": pageSize}), pageSize, None
+            else:
+                params = {"page": number, "pageSize": size}
+            return v2_page(await client.get("v2", "environments", params), "environments", number, size, start)
 
         return await run_tool("liongard_environments_list", client_factory, action)
 

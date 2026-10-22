@@ -33,8 +33,10 @@ A request to `/mcp` without both headers gets HTTP 401; an invalid instance gets
 ## Tools
 
 All tools return a JSON string. Lists take `page` (from 1) and `pageSize` (default 50, max
-200) and return `{count, total, page, has_more}`. **write** marks tools that change data;
-**confirm** marks the delete, which also needs `confirm: true`.
+200) and return `{count, total, page, has_more, offset, next_offset}`. To read on, pass
+`offset: next_offset` (a record position that overrides `page`): when a page is too large for one
+response and is cut, `next_offset` starts right after the last record returned, which no page number can.
+**write** marks tools that change data; **confirm** marks the delete, which also needs `confirm: true`.
 
 | Area | Tools |
 |---|---|

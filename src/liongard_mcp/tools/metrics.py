@@ -19,7 +19,7 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, ClientFactory, Page, PageSize, compact, pagination, run_tool, v2_page
+from ._common import READ_ONLY, ClientFactory, Offset, Page, PageSize, compact, locate, pagination, run_tool, v2_page
 
 MetricIds = Annotated[list[int] | None, Field(description="Metric ids (liongard_metrics_list).")]
 EnvironmentIds = Annotated[list[int] | None, Field(description="Only these environment ids.")]
@@ -45,14 +45,16 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
         EnvironmentIDs: EnvironmentIds = None,
         page: Page = None,
         pageSize: PageSize = None,
+        offset: Offset = None,
     ) -> str:
         """Evaluate metrics across systems: the value of each metric per system and environment."""
 
         async def action(client: LiongardClient) -> dict:
             if not MetricIDs:
                 raise ValueError("Pass MetricIDs: Liongard evaluates the metrics you name (see liongard_metrics_list).")
-            body = compact({"Metrics": MetricIDs, "Filters": _environment_filter(EnvironmentIDs), "Pagination": pagination(page, pageSize)})
-            return v2_page(await client.post("v2", "metrics/evaluate", body), "values")
+            number, size, start = locate(offset, page, pageSize)
+            body = compact({"Metrics": MetricIDs, "Filters": _environment_filter(EnvironmentIDs), "Pagination": pagination(number, size)})
+            return v2_page(await client.post("v2", "metrics/evaluate", body), "values", number, size, start)
 
         return await run_tool("liongard_metrics_evaluate", client_factory, action)
 
@@ -63,18 +65,25 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
         page: Page = None,
         pageSize: PageSize = None,
         SystemIDs: Annotated[list[int] | None, Field(description="Systems to evaluate all displayed metrics for; required by Liongard.")] = None,
+        offset: Offset = None,
     ) -> str:
         """Evaluate every displayed metric for given systems; optionally keep only some metric ids."""
 
         async def action(client: LiongardClient) -> Any:
             if not SystemIDs:
                 raise ValueError("Pass SystemIDs: this evaluates the metrics of specific systems (see liongard_systems_list).")
-            body = compact({"Systems": SystemIDs, "Filters": _environment_filter(EnvironmentIDs), "Pagination": pagination(page, pageSize)})
-            result = v2_page(await client.post("v2", "metrics/evaluate/systems", body), "values")
+            number, size, start = locate(offset, page, pageSize)
+            body = compact({"Systems": SystemIDs, "Filters": _environment_filter(EnvironmentIDs), "Pagination": pagination(number, size)})
+            result = v2_page(await client.post("v2", "metrics/evaluate/systems", body), "values", number, size, start)
             if MetricIDs:
                 wanted = {str(m) for m in MetricIDs}
-                kept = [r for r in result["values"] if not isinstance(r, dict) or str(r.get("MetricID", r.get("ID"))) in wanted]
+                values = result.get("values", [])
+                kept = [r for r in values if not isinstance(r, dict) or str(r.get("MetricID", r.get("ID"))) in wanted]
                 result |= {"values": kept, "count": len(kept)}
+                if len(kept) < len(values):
+                    # next_offset still counts Liongard records, but a cut of the filtered list
+                    # cannot be mapped back to a record position: no exact continuation then.
+                    result.pop("_resume", None)
             return result
 
         return await run_tool("liongard_metrics_evaluate_systems", client_factory, action)

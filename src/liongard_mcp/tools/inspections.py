@@ -21,7 +21,7 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, WRITES, ClientFactory, Page, PageSize, compact, local_page, run_tool
+from ._common import READ_ONLY, WRITES, ClientFactory, Offset, Page, PageSize, compact, local_page, run_tool
 
 
 def schedule(value: str | None) -> tuple[str, int]:
@@ -41,20 +41,20 @@ def schedule(value: str | None) -> tuple[str, int]:
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_inspections_inspectors(page: Page = None, pageSize: PageSize = None) -> str:
+    async def liongard_inspections_inspectors(page: Page = None, pageSize: PageSize = None, offset: Offset = None) -> str:
         """List inspectors (integration types such as Microsoft 365, Active Directory, firewalls) with ids."""
 
         async def action(client: LiongardClient) -> dict:
-            return local_page(await client.get("v1", "inspectors"), "inspectors", page, pageSize)
+            return local_page(await client.get("v1", "inspectors"), "inspectors", page, pageSize, offset)
 
         return await run_tool("liongard_inspections_inspectors", client_factory, action)
 
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_inspections_launchpoints(page: Page = None, pageSize: PageSize = None) -> str:
+    async def liongard_inspections_launchpoints(page: Page = None, pageSize: PageSize = None, offset: Offset = None) -> str:
         """List launchpoints: inspector, environment, agent, schedule, last run and status."""
 
         async def action(client: LiongardClient) -> dict:
-            return local_page(await client.get("v1", "launchpoints"), "launchpoints", page, pageSize)
+            return local_page(await client.get("v1", "launchpoints"), "launchpoints", page, pageSize, offset)
 
         return await run_tool("liongard_inspections_launchpoints", client_factory, action)
 

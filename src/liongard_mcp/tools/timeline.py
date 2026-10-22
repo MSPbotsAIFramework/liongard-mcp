@@ -16,16 +16,17 @@
 from mcp.server.fastmcp import FastMCP
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, ClientFactory, Page, PageSize, pagination, run_tool, v2_page
+from ._common import READ_ONLY, ClientFactory, Offset, Page, PageSize, locate, pagination, run_tool, v2_page
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_timeline_list(page: Page = None, pageSize: PageSize = None) -> str:
+    async def liongard_timeline_list(page: Page = None, pageSize: PageSize = None, offset: Offset = None) -> str:
         """List inspection runs, newest first: launchpoint, system, status, start / finish time."""
 
         async def action(client: LiongardClient) -> dict:
-            body = {"Pagination": pagination(page, pageSize), "Sorting": [{"Field": "ID", "Direction": "DESC"}]}
-            return v2_page(await client.post("v2", "timelines/query", body), "timeline")
+            number, size, start = locate(offset, page, pageSize)
+            body = {"Pagination": pagination(number, size), "Sorting": [{"Field": "ID", "Direction": "DESC"}]}
+            return v2_page(await client.post("v2", "timelines/query", body), "timeline", number, size, start)
 
         return await run_tool("liongard_timeline_list", client_factory, action)

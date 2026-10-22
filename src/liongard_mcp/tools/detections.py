@@ -19,7 +19,7 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient
-from ._common import READ_ONLY, ClientFactory, Filters, Page, PageSize, RecordId, compact, pagination, run_tool, v2_page
+from ._common import READ_ONLY, ClientFactory, Filters, Offset, Page, PageSize, RecordId, compact, locate, pagination, run_tool, v2_page
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
@@ -30,12 +30,14 @@ def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
         startDate: Annotated[str | None, Field(description="ISO 8601: detections on or after.")] = None,
         endDate: Annotated[str | None, Field(description="ISO 8601: detections on or before.")] = None,
         filters: Filters = None,
+        offset: Offset = None,
     ) -> str:
         """List detections (changes found by inspections): system, environment, what changed and when."""
 
         async def action(client: LiongardClient) -> dict:
-            body = compact({"Pagination": pagination(page, pageSize), "StartDate": startDate, "EndDate": endDate, "Filters": filters})
-            return v2_page(await client.post("v2", "detections", body), "detections")
+            number, size, start = locate(offset, page, pageSize)
+            body = compact({"Pagination": pagination(number, size), "StartDate": startDate, "EndDate": endDate, "Filters": filters})
+            return v2_page(await client.post("v2", "detections", body), "detections", number, size, start)
 
         return await run_tool("liongard_detections_list", client_factory, action)
 

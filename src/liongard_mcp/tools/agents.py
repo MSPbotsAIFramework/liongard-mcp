@@ -18,16 +18,17 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from ..api_client import LiongardClient
-from ._common import DESTRUCTIVE, READ_ONLY, ClientFactory, Confirm, Page, PageSize, RecordId, not_confirmed_result, pagination, run_tool, v2_page
+from ._common import DESTRUCTIVE, READ_ONLY, ClientFactory, Confirm, Offset, Page, PageSize, RecordId, locate, not_confirmed_result, pagination, run_tool, v2_page
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_agents_list(page: Page = None, pageSize: PageSize = None) -> str:
+    async def liongard_agents_list(page: Page = None, pageSize: PageSize = None, offset: Offset = None) -> str:
         """List agents: id, name, type (cloud / on-premises), environment, status, version, last check-in."""
 
         async def action(client: LiongardClient) -> dict:
-            return v2_page(await client.post("v2", "view/agents", {"Pagination": pagination(page, pageSize)}), "agents")
+            number, size, start = locate(offset, page, pageSize)
+            return v2_page(await client.post("v2", "view/agents", {"Pagination": pagination(number, size)}), "agents", number, size, start)
 
         return await run_tool("liongard_agents_list", client_factory, action)
 

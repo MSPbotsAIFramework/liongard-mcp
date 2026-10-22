@@ -19,16 +19,16 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 from ..api_client import LiongardClient, LiongardError
-from ._common import READ_ONLY, ClientFactory, Page, PageSize, RecordId, condition, local_page, run_tool
+from ._common import READ_ONLY, ClientFactory, Offset, Page, PageSize, RecordId, condition, local_page, run_tool
 
 
 def register(mcp: FastMCP, client_factory: ClientFactory) -> None:
     @mcp.tool(annotations=READ_ONLY)
-    async def liongard_systems_list(page: Page = None, pageSize: PageSize = None) -> str:
+    async def liongard_systems_list(page: Page = None, pageSize: PageSize = None, offset: Offset = None) -> str:
         """List systems: id, name, launchpoint, environment, status and last inspection time."""
 
         async def action(client: LiongardClient) -> dict:
-            return local_page(await client.get("v1", "systems"), "systems", page, pageSize)
+            return local_page(await client.get("v1", "systems"), "systems", page, pageSize, offset)
 
         return await run_tool("liongard_systems_list", client_factory, action)
 
